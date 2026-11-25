@@ -375,6 +375,20 @@ test.describe("Hybi", function() { with(this) {
         assertEqual( "closed", driver().getState() )
       }})
 
+      it("returns an error when an extension expands a message beyond maxLength", function() { with(this) {
+        driver()._maxLength = 16
+        driver()._extensions.processIncomingMessage = function(message, callback, context) {
+          message.data = new Buffer(64)
+          message.data.fill(0x41)
+          callback.call(context, null, message)
+        }
+        driver().parse([0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f])
+        assertEqual( "", message )
+        assertEqual( "WebSocket frame length too large", error.message )
+        assertEqual( [1009, "WebSocket frame length too large"], close )
+        assertEqual( "closed", driver().getState() )
+      }})
+
       it("parses masked medium-length text frames", function() { with(this) {
         driver().parse([0x81, 0xfe, 0x00, 0xc8])
         driver().parse(mask())
